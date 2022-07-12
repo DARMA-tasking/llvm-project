@@ -1,0 +1,48 @@
+//===--- RedundantConstRefsCheck.cpp - clang-tidy -------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#include "RedundantConstRefsCheck.h"
+#include "clang/AST/ASTContext.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+
+using namespace clang::ast_matchers;
+
+namespace clang {
+namespace tidy {
+namespace misc {
+
+void RedundantConstRefsCheck::registerMatchers(MatchFinder *Finder) {
+  auto ConstRefParm =
+      parmVarDecl(hasType(qualType(lValueReferenceType(),
+                                   references(isConstQualified()))))
+          .bind("const-ref-parm");
+
+  Finder->addMatcher(ConstRefParm, this);
+}
+
+void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
+  const auto *ConstRefParm =
+      Result.Nodes.getNodeAs<ParmVarDecl>("const-ref-parm");
+  const auto ConstRefParmType = ConstRefParm->getType();
+  if (not ConstRefParmType->isTemplateTypeParmType()) {
+    const auto ParmType =
+        ConstRefParmType.getNonReferenceType().getUnqualifiedType();
+    const auto ParmWidth = Result.Context->getTypeInfo(ParmType).Width;
+    const auto Hint =
+        FixItHint::CreateReplacement(ConstRefParm->getSourceRange(),
+                                     "const " + ParmType.getAsString() + " " +
+                                         ConstRefParm->getNameAsString());
+    diag(ConstRefParm->getBeginLoc(), "passing small (%0 bits) variable by "
+                                      "const ref, consider passing by value")
+        << ParmWidth << ConstRefParm << Hint;
+  }
+}
+
+} // namespace misc
+} // namespace tidy
+} // namespace clang

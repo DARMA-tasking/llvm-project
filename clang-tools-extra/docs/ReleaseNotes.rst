@@ -115,6 +115,11 @@ New checks
 
   Warns when using ``do-while`` loops.
 
+- New :doc:`misc-redundant-const-refs
+  <clang-tidy/checks/misc/redundant-const-refs>` check.
+
+  FIXME: add release notes.
+
 New check aliases
 ^^^^^^^^^^^^^^^^^
 

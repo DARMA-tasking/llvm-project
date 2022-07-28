@@ -60,6 +60,22 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   if (ParmType->isDependentType()) {
     return;
   }
+
+  // This fixes an error:
+  //
+  // const clang::ASTRecordLayout& clang::ASTContext::getASTRecordLayout(const
+  // clang::RecordDecl*) const: Assertion `D && "Cannot get layout of forward
+  // declarations!"' failed.
+  //
+  // For example, it comes from declaration
+  // template <typename SeqTag, template <typename> class SeqTrigger>
+  // void TaggedSequencer<SeqTag, SeqTrigger>::sequenced(
+  //   SeqType const& seq_id, UserSeqFunWithIDType const& fn
+  // ) {
+  // from src/vt/sequence/sequencer.impl.h
+  if (ParmType->isIncompleteType()) {
+    return;
+  }
     const auto Hint =
         FixItHint::CreateReplacement(ConstRefParm->getSourceRange(),
                                      "const " + ParmType.getAsString() + " " +

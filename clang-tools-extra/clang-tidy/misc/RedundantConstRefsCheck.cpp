@@ -76,13 +76,16 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   if (ParmType->isIncompleteType()) {
     return;
   }
+
+  const auto ParmWidth = Result.Context->getTypeInfo(ParmType).Width;
+  if (ParmWidth <= 128) {
     const auto Hint =
         FixItHint::CreateReplacement(ConstRefParm->getSourceRange(),
                                      "const " + ParmType.getAsString() + " " +
                                          ConstRefParm->getNameAsString());
-    diag(ConstRefParm->getBeginLoc(), "passing small (%0 bits) variable by "
+    diag(ConstRefParm->getBeginLoc(), "passing %0 (%1 bits) variable by "
                                       "const ref, consider passing by value")
-        << ParmWidth << ConstRefParm << Hint;
+        << ParmType << ParmWidth << ConstRefParm << Hint;
   }
 }
 

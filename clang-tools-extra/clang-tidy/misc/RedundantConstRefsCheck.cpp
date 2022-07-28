@@ -19,7 +19,8 @@ namespace misc {
 void RedundantConstRefsCheck::registerMatchers(MatchFinder *Finder) {
   auto ConstRefParm =
       parmVarDecl(hasType(qualType(lValueReferenceType(),
-                                   references(isConstQualified()))))
+                                   references(isConstQualified()))),
+                  unless(isExpansionInSystemHeader()))
           .bind("const-ref-parm");
 
   Finder->addMatcher(ConstRefParm, this);

@@ -44,8 +44,22 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   if (!FuncDecl || !FuncDecl->isThisDeclarationADefinition()) {
     return;
   }
-        ConstRefParmType.getNonReferenceType().getUnqualifiedType();
-    const auto ParmWidth = Result.Context->getTypeInfo(ParmType).Width;
+
+  const auto ParmType =
+      ConstRefParm->getType().getNonReferenceType().getUnqualifiedType();
+
+  // This fixes an error:
+  //
+  // clang::TypeInfo clang::ASTContext::getTypeInfoImpl(const clang::Type*)
+  // const: Assertion `!T->isDependentType() && "should not see dependent types
+  // here"' failed.
+  //
+  // For example, it comes from declaration
+  // std::string prettyPrintStack(DumpStackType const& stack);
+  // from src/vt/configs/error/stack_out.h
+  if (ParmType->isDependentType()) {
+    return;
+  }
     const auto Hint =
         FixItHint::CreateReplacement(ConstRefParm->getSourceRange(),
                                      "const " + ParmType.getAsString() + " " +

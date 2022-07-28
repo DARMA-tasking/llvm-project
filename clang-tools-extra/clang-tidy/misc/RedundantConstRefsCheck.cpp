@@ -29,9 +29,21 @@ void RedundantConstRefsCheck::registerMatchers(MatchFinder *Finder) {
 void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   const auto *ConstRefParm =
       Result.Nodes.getNodeAs<ParmVarDecl>("const-ref-parm");
-  const auto ConstRefParmType = ConstRefParm->getType();
-  if (not ConstRefParmType->isTemplateTypeParmType()) {
-    const auto ParmType =
+
+  // This fixes an error:
+  //
+  // const clang::ASTRecordLayout& clang::ASTContext::getASTRecordLayout(const
+  // clang::RecordDecl*) const: Assertion `D && "Cannot get layout of forward
+  // declarations!"' failed.
+  //
+  // For example, it comes from declaration
+  // `std::string prettyPrintStack(DumpStackType const& stack);`
+  // from src/vt/configs/error/stack_out.h
+  const auto *FuncDecl =
+      dyn_cast_or_null<FunctionDecl>(ConstRefParm->getParentFunctionOrMethod());
+  if (!FuncDecl || !FuncDecl->isThisDeclarationADefinition()) {
+    return;
+  }
         ConstRefParmType.getNonReferenceType().getUnqualifiedType();
     const auto ParmWidth = Result.Context->getTypeInfo(ParmType).Width;
     const auto Hint =

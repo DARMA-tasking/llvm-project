@@ -83,8 +83,8 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
         FixItHint::CreateReplacement(ConstRefParm->getSourceRange(),
                                      "const " + ParmType.getAsString() + " " +
                                          ConstRefParm->getNameAsString());
-    diag(ConstRefParm->getBeginLoc(), "passing %0 (%1 bits) variable by "
-                                      "const ref, consider passing by value")
+    diag(ConstRefParm->getBeginLoc(),
+         "passing %0 (%1 bits) by const ref, consider passing by value")
         << ParmType << ParmWidth << ConstRefParm << Hint;
   }
 }

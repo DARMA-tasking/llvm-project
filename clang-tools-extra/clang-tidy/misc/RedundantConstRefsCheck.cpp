@@ -30,7 +30,13 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   const auto *ConstRefParm =
       Result.Nodes.getNodeAs<ParmVarDecl>("const-ref-parm");
 
-  // This fixes an error:
+  const auto *FuncDecl =
+      dyn_cast_or_null<FunctionDecl>(ConstRefParm->getParentFunctionOrMethod());
+  if (!FuncDecl) {
+    return;
+  }
+
+  // `!FuncDecl->isThisDeclarationADefinition()` fixes an error:
   //
   // const clang::ASTRecordLayout& clang::ASTContext::getASTRecordLayout(const
   // clang::RecordDecl*) const: Assertion `D && "Cannot get layout of forward
@@ -39,9 +45,12 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   // For example, it comes from declaration
   // `std::string prettyPrintStack(DumpStackType const& stack);`
   // from src/vt/configs/error/stack_out.h
-  const auto *FuncDecl =
-      dyn_cast_or_null<FunctionDecl>(ConstRefParm->getParentFunctionOrMethod());
-  if (!FuncDecl || !FuncDecl->isThisDeclarationADefinition()) {
+  if (!FuncDecl->isThisDeclarationADefinition()) {
+    return;
+  }
+
+  // Ignore template functions specializations
+  if (FuncDecl->isFunctionTemplateSpecialization()) {
     return;
   }
 

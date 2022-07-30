@@ -78,7 +78,7 @@ void RedundantConstRefsCheck::check(const MatchFinder::MatchResult &Result) {
   }
 
   const auto ParmWidth = Result.Context->getTypeInfo(ParmType).Width;
-  if (ParmWidth <= 128) {
+  if (ParmWidth <= 64) {
     const auto Hint =
         FixItHint::CreateReplacement(ConstRefParm->getSourceRange(),
                                      "const " + ParmType.getAsString() + " " +
